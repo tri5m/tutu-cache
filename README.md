@@ -169,5 +169,6 @@ tutu-cache 是一个简单易用的Spring缓存注解。
 |           |    |          |
 
 
-### [感谢JetBrains提供的免费授权](https://www.jetbrains.com/?from=tutu-cache)
-[![JetBrains logo](assets/thanks/jetbrains.svg)](https://www.jetbrains.com/?from=tutu-cache)
+[//]: # (### [感谢JetBrains提供的免费授权]&#40;https://www.jetbrains.com/?from=tutu-cache&#41;)
+
+[//]: # ([![JetBrains logo]&#40;assets/thanks/jetbrains.svg&#41;]&#40;https://www.jetbrains.com/?from=tutu-cache&#41;)
