@@ -61,10 +61,11 @@ public class RedisCacheService extends AbstractTuCacheService {
 
         Object value = redisTemplate.opsForValue().get(key);
 
-        redisTemplate.expire(key, expire, timeUnit);
+        if (expire != NOT_EXPIRE) {
+            redisTemplate.expire(key, expire, timeUnit);
+        }
 
         return objectConvertBean(value, clazz);
     }
 
 }
-

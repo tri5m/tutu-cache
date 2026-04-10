@@ -10,6 +10,7 @@ import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.ParserContext;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Method;
@@ -69,10 +70,10 @@ public class DefaultTuKeyGenerate implements TuKeyGenerate {
     }
 
     private String defaultKey(Method method, Object[] args) {
-        String defaultKey = method.getDeclaringClass().getPackage().getName() + method.getDeclaringClass().getName() + ":" + method.getName();
+        String defaultKey = method.getDeclaringClass().getName() + ":" + method.getName();
         StringBuilder builder = new StringBuilder(defaultKey);
-        for (Object a : args) {
-            builder.append(a.hashCode()).append("_");
+        for (Object arg : args) {
+            builder.append(":").append(ObjectUtils.nullSafeToString(arg));
         }
 
         return builder.toString();

@@ -40,7 +40,9 @@ public class RedissonCacheService extends AbstractTuCacheService {
     @Override
     public <T> T get(String key, Class<T> clazz, long timeout, TimeUnit timeUnit) {
         RBucket<T> bucket = redissonClient.getBucket(key);
-        bucket.expire(Duration.ofMillis(timeUnit.toMillis(timeout)));
+        if (timeout >= 0) {
+            bucket.expire(Duration.ofMillis(timeUnit.toMillis(timeout)));
+        }
         return bucket.get();
     }
 

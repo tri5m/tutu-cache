@@ -141,7 +141,7 @@ public class TuCacheAspect implements DisposableBean, InitializingBean, BeanFact
             long timeout = tuCache.timeout();
             // 从缓存中获取数据，如果出错，则直接返回方法处理
             try {
-                if (tuCache.resetExpire()) {
+                if (tuCache.resetExpire() && timeout >= 0) {
                     // Get data and reset the expiration time
                     cacheResult = tuCacheService.get(cacheKey, returnType, timeout, tuCache.timeUnit());
                 } else {
