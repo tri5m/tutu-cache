@@ -9,6 +9,8 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>tucache-spring-boot-autoconfigure</artifactId>
+    <name>tucache-spring-boot-autoconfigure</name>
+    <description>Spring Boot autoconfiguration for tutu-cache</description>
 
     <dependencies>
 

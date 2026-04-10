@@ -11,6 +11,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>tucache-core</artifactId>
+    <name>tucache-core</name>
+    <description>Core module for tutu-cache</description>
 
     <packaging>jar</packaging>
 

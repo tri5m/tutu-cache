@@ -10,6 +10,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>tucache-spring-boot-starter</artifactId>
+    <name>tucache-spring-boot-starter</name>
+    <description>Spring Boot starter for tutu-cache</description>
 
     <packaging>jar</packaging>
 
