@@ -153,7 +153,7 @@ public class TuCacheAspect implements DisposableBean, InitializingBean, BeanFact
                 log.warn("cache miss, read error. key:{}", cacheKey);
                 log.error(e.getMessage(), e);
 
-                return null;
+                return resultSup.get();
             }
             // 如果缓存中没有数据就放入，否则直接返回缓存的数据
             // 如果缓存中返回的是null，就认为没有缓存，直接运行方法获取最新数据
@@ -188,7 +188,7 @@ public class TuCacheAspect implements DisposableBean, InitializingBean, BeanFact
             return cacheResult;
         }
 
-        return null;
+        return resultSup.get();
     }
 
     /**
