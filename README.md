@@ -137,10 +137,10 @@ tutu-cache 是一个简单易用的Spring缓存注解。
         # ...
     ```
 * 如果用户需要每个缓存前面添加同意的keyPrefix，TuCacheBean的prefixKey参数
-* 如果不指定cache-type，则会自动推断使用的缓存工具，优先级为 custom > redis > redisson > local
+* 如果不指定cache-type，则会自动推断使用的缓存工具，优先级为 custom > redisson > redis > local
 * tutu-cache默认提供了一下缓存服务
-  1. `RedisTuCacheService`
-  2. `RedissonTuCacheService`
+  1. `RedissonTuCacheService`
+  2. `RedisTuCacheService`
   3. `LocalTuCacheService`
   4. 优先级从前往后
   
@@ -167,8 +167,3 @@ tutu-cache 是一个简单易用的Spring缓存注解。
 |  一直在梦想路上 | 20  | 20***154 |
 |           |    |          |
 |           |    |          |
-
-
-[//]: # (### [感谢JetBrains提供的免费授权]&#40;https://www.jetbrains.com/?from=tutu-cache&#41;)
-
-[//]: # ([![JetBrains logo]&#40;assets/thanks/jetbrains.svg&#41;]&#40;https://www.jetbrains.com/?from=tutu-cache&#41;)

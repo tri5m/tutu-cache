@@ -7,6 +7,7 @@ import io.github.tri5m.tucache.core.cache.AbstractTuCacheService;
 import io.github.tri5m.tucache.core.cache.TuCacheService;
 import io.github.tri5m.tucache.core.cache.impl.LocalCacheService;
 import io.github.tri5m.tucache.core.cache.impl.RedisCacheService;
+import io.github.tri5m.tucache.core.cache.impl.RedissonCacheService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.BeanFactory;
@@ -68,7 +69,7 @@ public class TuCacheAutoConfigure {
 
     /**
      * TuCacheService bean选择器
-     * 根据 <custom> > REDIS > LOCAL的优先级选用
+     * 根据 <custom> > REDISSON > REDIS > LOCAL 的优先级选用
      * 如果用户指定了cache-type，但是并没有自动注入相应的缓存组件，则抛出异常。
      */
     private TuCacheService selectTuCacheService(ObjectProvider<TuCacheService> tuCacheServices,
@@ -87,16 +88,27 @@ public class TuCacheAutoConfigure {
                         .findFirst().orElseThrow(() -> new BeanCreationException("RedisCacheService",
                                 "RedisCacheService bean does not exist, but tucache.cache-type=" + cacheType));
                 break;
+            case REDISSON:
+                tuCacheService = tuCacheServices.stream().filter(cs -> cs instanceof RedissonCacheService)
+                        .findFirst().orElseThrow(() -> new BeanCreationException("RedissonCacheService",
+                                "RedissonCacheService bean does not exist, but tucache.cache-type=" + cacheType));
+                break;
             default:
-                // 根据 <custom> > REDIS > LOCAL的优先级选用，
+                // 根据 <custom> > REDISSON > REDIS > LOCAL 的优先级选用，
                 // 如果有@Primary注解的或者是唯一的TuCacheService则直接选择
                 tuCacheService = tuCacheServices.getIfUnique();
                 if (tuCacheService != null) {
                     break;
                 }
 
-                // 户自定义优先选择
+                // 用户自定义优先选择
                 tuCacheService = tuCacheServices.stream().filter(cs -> !(cs instanceof AbstractTuCacheService))
+                        .findFirst().orElse(null);
+                if (tuCacheService != null) {
+                    break;
+                }
+
+                tuCacheService = tuCacheServices.stream().filter(cs -> (cs instanceof RedissonCacheService))
                         .findFirst().orElse(null);
                 if (tuCacheService != null) {
                     break;
@@ -126,6 +138,7 @@ public class TuCacheAutoConfigure {
         @Override
         public String[] selectImports(AnnotationMetadata importingClassMetadata) {
             return new String[]{
+                    "io.github.tri5m.tucache.autoconfigure.configure.cache.RedissonCacheServiceConfigure",
                     "io.github.tri5m.tucache.autoconfigure.configure.cache.RedisCacheServiceConfigure",
                     "io.github.tri5m.tucache.autoconfigure.configure.cache.LocalCacheServiceConfigure"
             };
