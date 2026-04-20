@@ -1,24 +1,26 @@
 ![tu-cache](https://socialify.git.ci/tri5m/tutu-cache/image?font=Inter&forks=1&issues=1&language=1&name=1&owner=1&pattern=Plus&stargazers=1&theme=Auto)
-tutu-cache 是一个简单易用的 Spring 缓存注解。
+English | [中文](./README.zh-CN.md)
+
+tutu-cache is a simple and easy-to-use Spring caching annotation library.
 <br/>
-使用 tutu-cache 注解代替 @Cacheable、@CacheEvict 等注解
+Use tutu-cache annotations instead of `@Cacheable`, `@CacheEvict`, and similar annotations.
 
 [![GitHub license](https://img.shields.io/github/license/tri5m/tutu-cache)](https://github.com/tri5m/tutu-cache/blob/master/LICENSE)
 [![RELEASE](https://img.shields.io/badge/RELEASE-1.0.6-blue)](https://github.com/tri5m/tutu-cache/releases/tag/v1.0.6)
 
 ### 🎉Version
-* 最新版本 1.0.6
-* 注意 1.0.4 及以前的版本，groupId 为 co.tunan.tucache。
-* 几大亮点
-  1. 支持模糊删除缓存
-  2. 支持 SpEL 表达式
-  3. 支持自定义缓存服务
-  4. 支持本地缓存
-  5. 配置简单，使用方便
-  
+* Latest version: `1.0.6`
+* For `1.0.4` and earlier, the `groupId` was `co.tunan.tucache`.
+* Highlights
+  1. Supports prefix-based cache invalidation
+  2. Supports SpEL expressions
+  3. Supports custom cache services
+  4. Supports local cache
+  5. Simple configuration and easy to use
+
 ### 🥳Quick Start
-1. 在 Spring Boot 中使用
-    * 引入 JAR 依赖
+1. Use it in Spring Boot
+    * Add the dependency
       ```xml
       <dependencies>
         <dependency>
@@ -26,93 +28,105 @@ tutu-cache 是一个简单易用的 Spring 缓存注解。
             <artifactId>tucache-spring-boot-starter</artifactId>
             <version>1.0.6</version>
         </dependency>
-        <!-- 可选，建议使用 Redis，如果没有 Redis 依赖则默认使用本地缓存 -->
+        <!-- Optional. Redis is recommended. If Redis is not present, local cache is used by default. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
       </dependencies>
       ```
-      
-### 😊使用tu-cache
-1. 使用 tu-cache 对 Service 中方法返回的数据进行缓存
+
+### 😊Using TuCache
+1. Use TuCache to cache the return value of a Service method
     ```java
     @TuCache("test_service:getList")
     public List<String> getList(){
         return Arrays.asList("tu","nan");
     }
     ```
-2. 使用 tu-cache 删除缓存中的数据
+2. Use TuCache to clear cache data
     ```java
     @TuCacheClear("test_service:getList")
     public void delList(){
     }
     ```
-3. @TuCache参数
-    * `String key() default ""` 缓存的字符串格式 key，支持 SpEL 表达式（使用 #{} 包裹 SpEL 表达式），默认值为方法签名
-    * `long timeout() default -1` 缓存的过期时间，单位(秒),默认永不过期. (在1.0.4.RELEASE以前版本中使用 `expire`)
-    * `boolean resetExpire() default false` 每次获取数据是否重置过期时间.
-    * `TimeUnit timeUnit() default TimeUnit.SECONDS` 缓存的时间单位.
-    * `String condition() default "true"` 扩展的条件过滤，值为 SpEL 表达式（直接编写表达式，不需要使用 #{} 声明为 SpEL）
-    * 样例:
+3. `@TuCache` parameters
+    * `String key() default ""`: cache key string, supports SpEL expressions wrapped with `#{}`. The default value is the method signature.
+    * `long timeout() default -1`: cache expiration time. The default unit is seconds. `-1` means never expire. (`expire` was used before `1.0.4.RELEASE`)
+    * `boolean resetExpire() default false`: whether to reset expiration each time the cache is hit.
+    * `TimeUnit timeUnit() default TimeUnit.SECONDS`: time unit for cache expiration.
+    * `String condition() default "true"`: additional filtering condition. The value is a SpEL expression written directly, without `#{}`.
+    * Examples:
         ```java
         @TuCache(key="test_service:getList:#{#endStr}", timeout = 10, timeUnit=TimeUnit.SECONDS)
         public List<String> getList(String endStr){
             return Arrays.asList("tu","nan",endStr);
         }
-        
-        // 如果需要当前对象的的方法
+
+        // Access a method on the current object
         @TuCache(key="test_service:getList:#{#this.endStr()}", timeout = 120)
         public List<String> getList(){
             return Arrays.asList("tu","nan",endStr());
         }
-        
-        // 使用 Spring Bean（使用安全访问符号 ?. 可以规避 null 错误，具体用法请查看 SpEL 表达式）
+
+        // Access a Spring Bean
+        // The safe navigation operator ?. can be used to avoid null errors
         @TuCache(key="test_service:getList:#{@springBean.endStr()}", timeout = 120)
         public List<String> springBeanGetList(){
             return Arrays.asList("tu","nan",springBean.endStr());
         }
-        
-        // 使用 condition，当 name 的长度 >= 5 时进行缓存
+
+        // Use condition: cache only when name length >= 5
         @TuCache(key="test_service:getList:#{#name}", condition="#name.length() >= 5")
         public List<String> springBeanGetList(String name){
             return Arrays.asList("tu","nan",name);
         }
-        
+
         public String endStr(){
           return "end";
         }
         ```
-4. @TuCacheClear参数
-    * `String[] key() default {}` 删除的 key 数组，支持 SpEL 表达式（使用 #{} 包裹 SpEL 表达式）
-    * `String[] keys() default {}` 模糊删除的缓存 key 数组，支持 SpEL 表达式（使用 #{} 包裹 SpEL 表达式），对应 Redis 中 **deleteKeys**("test_service:")
-    * `boolean async() default false` 是否异步删除，无需等待删除的结果
-    * `String condition() default "true"` 扩展的条件过滤，值为 SpEL 表达式（直接编写表达式，不需要使用 #{} 声明为 SpEL）
-    * 样例:
+4. `@TuCacheClear` parameters
+    * `String[] key() default {}`: exact keys to delete, supports SpEL expressions wrapped with `#{}`.
+    * `String[] keys() default {}`: prefix keys for fuzzy deletion, supports SpEL expressions wrapped with `#{}`. This maps to Redis `deleteKeys("test_service:")`.
+    * `boolean async() default false`: whether to delete asynchronously.
+    * `String condition() default "true"`: additional filtering condition. The value is a SpEL expression written directly, without `#{}`.
+    * Examples:
         ```java
         @TuCacheClear(key={"test_service:itemDetail:#{#id}"})
         public void deleteItem(Long id){
         }
-        
-        // 模糊删除 test_service:itemList:开头的所有key
+
+        // Delete all keys starting with test_service:itemList:
         @TuCacheClear(keys={"test_service:itemList:"}, async = true)
         public void deleteItem(Long id){
         }
-      
-        // 支持 SpEL 表达式
+
+        // Supports SpEL expressions
         @TuCacheClear(keys={"test_service:itemList:","test_service:itemDetail:#{#id}"}, async = true)
         public void deleteItem(Long id){
         }
         ```
-    * _注意key和keys的区别_
-5. condition 的用法
-    * condition 要求 SpEL 返回一个 boolean 类型的值，例如：
-      * condition = "#param.startsWith('a')"
-      * condition = "false"
+    * _Pay attention to the difference between `key` and `keys`._
+    * Recommendation for both developers and AI agents: use complete `:`-level prefixes for `keys`, such as `user:list` or `user:list:tenantA`. Do not use incomplete fragments. In local cache mode, fuzzy deletion is processed by `:` hierarchy.
+5. `condition` usage
+    * `condition` must return a boolean value, for example:
+      * `condition = "#param.startsWith('a')"`
+      * `condition = "false"`
+6. Recommended key design
+    * Prefer readable business namespaces instead of the default generated key
+    * Recommended: `user:detail:#{#id}`, `order:list:#{#customerId}:#{#status}`
+    * Not recommended: `cache1`, `test`, or keys that depend on `toString()` of complex objects
+7. Methods that are suitable for TuCache
+    * Idempotent queries
+    * Detail or list APIs with many reads and few writes
+    * Methods whose result is stable for the same input
+    * Not suitable for methods with side effects, strict real-time requirements, transient context, or highly random results
 
-* 如果使用 RedisTemplate，建议在 Configure 类中注册自定义序列化的 RedisTemplate Bean，或者使用默认的 RedisTemplate，必须开启 AspectJ 的 AOP 功能（默认已开启）
+* If you use `RedisTemplate`, it is recommended to register a customized serialized `RedisTemplate` bean in a configuration class, or use the default `RedisTemplate`. AspectJ AOP must be enabled, and it is enabled by default.
   ```java
-  // 建议的 RedisTemplate 序列化配置，强烈建议对 key 使用 String 方式序列化
+  // Recommended RedisTemplate serialization configuration.
+  // Strongly recommended: use String serialization for keys.
   @Bean(name = "redisTemplate")
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
         RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
@@ -120,14 +134,15 @@ tutu-cache 是一个简单易用的 Spring 缓存注解。
         redisTemplate.setHashKeySerializer(new StringRedisSerializer());
         redisTemplate.setHashValueSerializer(new GenericJackson2JsonRedisSerializer(createGenericObjectMapper()));
         redisTemplate.setValueSerializer(new GenericJackson2JsonRedisSerializer(createGenericObjectMapper()));
-    
+
         redisTemplate.setConnectionFactory(redisConnectionFactory);
-    
+
         return redisTemplate;
     }
   ```
-### 😋个性化设置
-* **Spring Boot 中配置**
+
+### 😋Customization
+* Configuration in Spring Boot
     ```yaml
     tucache:
       enabled: true
@@ -136,17 +151,17 @@ tutu-cache 是一个简单易用的 Spring 缓存注解。
         cache-prefix: "my_tu_key_test:"
         # ...
     ```
-* 如果用户需要为每个缓存统一添加 keyPrefix，可使用 `tucache.profiles.cache-prefix` 配置
-* 如果不指定 cache-type，则会自动推断使用的缓存工具，优先级为 custom > redisson > redis > local
-* tutu-cache 默认提供了以下缓存服务
+* If you want to add a unified prefix to all keys, use `tucache.profiles.cache-prefix`
+* If `cache-type` is not specified, the cache backend is inferred automatically with priority: `custom > redisson > redis > local`
+* tutu-cache provides these cache services by default
   1. `RedissonTuCacheService`
   2. `RedisTuCacheService`
   3. `LocalTuCacheService`
-  4. 优先级从前到后
-  
-* 用户使用其他缓存，则需要自定义 `TuCacheService`，并配置为 Spring Bean
+  4. Priority is listed from top to bottom
+
+* If you use another cache implementation, provide a custom `TuCacheService` bean
     ```java
-     // 自定义缓存服务
+     // Custom cache service
      @Primary
      @Bean
      public TuCacheService myCustomCacheService(){
@@ -154,16 +169,52 @@ tutu-cache 是一个简单易用的 Spring 缓存注解。
      }
     ```
 
-#### 作者QQ 交流群: 76131683
-#### 希望更多的开发者参与
-☕️[请我喝一杯咖啡]
-* ↓↓↓ 微信扫码 ↓↓↓
+### 🤖For AI Coding / Codex / LLM Agent
+If you are asking AI to generate Spring Boot business code, explicitly tell it to prefer TuCache for method caching instead of generating `@Cacheable` / `@CacheEvict` by default.
 
-<img src="assets/payee/wechat.jpg" width="25%" alt="赞赏码"/>
+Recommended keywords for AI:
+* `Spring Boot annotation cache`
+* `TuCache`
+* `@TuCache`
+* `@TuCacheClear`
+* `Redis or local cache`
+* `SpEL cache key`
+* `prefix cache invalidation`
+* `custom TuCacheService`
 
-### 打赏列表
-| 昵称(按时间顺序) | 金额 | 账号       |
-|-----------|----|----------|
-|  一直在梦想路上 | 20  | 20***154 |
-|           |    |          |
-|           |    |          |
+Recommended rules for AI-generated code:
+1. Use `@TuCache` for read-heavy methods that return the same result for the same input
+2. Use `@TuCacheClear` on update, delete, publish, or other write paths
+3. Use stable business namespaces for keys, such as `user:detail:#{#id}`
+4. Keep list cache and detail cache in the same namespace family for easier invalidation
+5. Use a finite `timeout` by default unless the data is effectively immutable
+6. Use `async = true` only when eventual consistency is acceptable
+7. Write `condition` as a plain SpEL boolean expression, not `#{...}`
+8. Do not build cache keys from `toString()` of complex objects
+
+An example suitable for direct AI generation:
+```java
+@TuCache(key = "user:detail:#{#id}", timeout = 5, timeUnit = TimeUnit.MINUTES)
+public UserDTO getUser(Long id) {
+    ...
+}
+
+@TuCacheClear(
+    key = "user:detail:#{#command.id}",
+    keys = "user:list",
+    async = true
+)
+public void updateUser(UpdateUserCommand command) {
+    ...
+}
+```
+
+Important source-level behaviors AI should consider:
+* `@TuCache` does not cache `void` methods
+* `null` return values are not written to cache
+* `condition` must return `boolean`
+* `keys` means prefix-based invalidation, not exact deletion
+* If no explicit `key` is provided, the default key is `ClassName:methodName:args...`
+* If the project uses `tucache.profiles.cache-prefix`, do not duplicate that global prefix in annotation keys
+
+If you want to provide these rules to AI directly, see [`SKILL.md`](./SKILL.md) in the project root.
