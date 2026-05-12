@@ -218,3 +218,19 @@ Important source-level behaviors AI should consider:
 * If the project uses `tucache.profiles.cache-prefix`, do not duplicate that global prefix in annotation keys
 
 If you want to provide these rules to AI directly, see [`SKILL.md`](./SKILL.md) in the project root.
+
+
+#### 作者QQ 交流群: 76131683
+#### 希望更多的开发者参与
+☕️[请我喝一杯咖啡]
+* ↓↓↓ 微信扫码 ↓↓↓
+
+<img src="assets/payee/wechat.jpg" width="25%" alt="赞赏码"/>
+
+### 打赏列表
+| 昵称(按时间顺序) | 金额 | 账号       |
+|-----------|----|----------|
+|  一直在梦想路上 | 20  | 20***154 |
+|           |    |          |
+|           |    |          |
+
