@@ -81,9 +81,16 @@ public class TuCacheAspect implements DisposableBean, InitializingBean, BeanFact
         if (tuCacheService != null) {
             Object targetObj = pjp.getTarget();
             Method method = ((MethodSignature) pjp.getSignature()).getMethod();
+            TuCacheClear tuCacheClear = method.getAnnotation(TuCacheClear.class);
 
-            processTuCacheClear(method.getAnnotation(TuCacheClear.class), targetObj,
-                    method, pjp.getArgs());
+            if (tuCacheClear != null && tuCacheClear.beforeInvocation()) {
+                processTuCacheClear(tuCacheClear, targetObj, method, pjp.getArgs());
+                return pjp.proceed();
+            }
+
+            Object result = pjp.proceed();
+            processTuCacheClear(tuCacheClear, targetObj, method, pjp.getArgs());
+            return result;
         }
 
         return pjp.proceed();

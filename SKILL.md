@@ -22,6 +22,7 @@ Core behavior from source:
 - `condition` is raw SpEL and must evaluate to `boolean`.
 - `key`/`value` support SpEL templates with `#{...}`.
 - `keys` in `@TuCacheClear` deletes exact keys unless the value contains `*`.
+- `@TuCacheClear` clears after successful method invocation by default. Use `beforeInvocation = true` only when pre-invocation clearing is required.
 
 Primary implementation points:
 
@@ -170,6 +171,7 @@ Use `async = true` only when eventual cache write/delete is acceptable.
 
 - `@TuCache(async = true)` makes cache writes asynchronous.
 - `@TuCacheClear(async = true)` makes invalidation asynchronous.
+- `@TuCacheClear(beforeInvocation = true)` clears before the method runs; the default clears only after the method succeeds.
 
 Use `resetExpire = true` only for hot keys that should stay alive on repeated reads.
 

@@ -90,6 +90,7 @@ Use tutu-cache annotations instead of `@Cacheable`, `@CacheEvict`, and similar a
     * `String[] key() default {}`: exact keys to delete, supports SpEL expressions wrapped with `#{}`.
     * `String[] keys() default {}`: cache keys or wildcard patterns to delete, supports SpEL expressions wrapped with `#{}`. Use `*` for wildcard deletion, for example `deleteKeys("test_service:*")`.
     * `boolean async() default false`: whether to delete asynchronously.
+    * `boolean beforeInvocation() default false`: whether to clear before method invocation. The default clears only after the method succeeds.
     * `String condition() default "true"`: additional filtering condition. The value is a SpEL expression written directly, without `#{}`.
     * Examples:
         ```java
@@ -214,6 +215,7 @@ Important source-level behaviors AI should consider:
 * `null` return values are not written to cache
 * `condition` must return `boolean`
 * `keys` deletes exact keys unless you use `*` for wildcard invalidation
+* `@TuCacheClear` clears after a successful method invocation by default; use `beforeInvocation = true` only when pre-invocation clearing is required
 * If no explicit `key` is provided, the default key is `ClassName:methodName:args...`
 * If the project uses `tucache.profiles.cache-prefix`, do not duplicate that global prefix in annotation keys
 

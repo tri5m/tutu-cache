@@ -1,5 +1,13 @@
 # Change Log
 
+## [1.0.7] - 2026-06-15
+
+### Changed
+- 本地缓存改成了Caffeine,不在使用TuTreeCache
+- 修改了MD文档中的一些问题
+- @TuCacheClear 添加了beforeInvocation，防止个边缘情况下的cache脏数据
+- 
+
 ## [1.0.6] - 2025-04-10
 
 ### Changed

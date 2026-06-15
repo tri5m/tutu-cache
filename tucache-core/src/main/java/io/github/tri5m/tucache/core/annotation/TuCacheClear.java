@@ -55,6 +55,14 @@ public @interface TuCacheClear {
      */
     boolean async() default false;
 
+    /**
+     * Whether to clear cache before method invocation.
+     * <p>
+     * Default false means clear cache only after the annotated method succeeds.
+     * 设置为 true 时在方法执行前清理缓存；默认为 false，方法成功执行后才清理缓存。
+     */
+    boolean beforeInvocation() default false;
+
     String condition() default "true";
 
 }
