@@ -33,10 +33,15 @@ public class DefaultTuKeyGenerate implements TuKeyGenerate {
     @Override
     public String generate(TuCacheProfiles profiles, String originKey, Object rootObject, Method method, Object[] arguments) {
 
+        String keyPrefix = "";
+        if (profiles.getCachePrefix() != null) {
+            keyPrefix = profiles.getCachePrefix();
+        }
+
         // SpEL表达式为空默认返回方法名
         if (!StringUtils.hasLength(originKey)) {
             // 生成默认的key
-            return defaultKey(method, arguments);
+            return keyPrefix + defaultKey(method, arguments);
         }
         ExpressionParser parser = new SpelExpressionParser();
         ParserContext parserContext = new ParserContext() {
@@ -60,11 +65,6 @@ public class DefaultTuKeyGenerate implements TuKeyGenerate {
 
         // 加入使用@符号访问bean能力
         context.setBeanResolver(new BeanFactoryResolver(beanFactory));
-
-        String keyPrefix = "";
-        if (profiles.getCachePrefix() != null) {
-            keyPrefix = profiles.getCachePrefix();
-        }
 
         return keyPrefix + parser.parseExpression(originKey, parserContext).getValue(context, String.class);
     }
