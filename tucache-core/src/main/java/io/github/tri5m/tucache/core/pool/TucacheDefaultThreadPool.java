@@ -22,70 +22,82 @@ import java.util.concurrent.locks.ReentrantLock;
 @Slf4j
 public class TucacheDefaultThreadPool {
 
-    private static TucacheDefaultThreadPool instance;
-
     private ThreadPoolExecutor pool;
 
     private TucacheDefaultThreadPool() {
 
     }
 
+    /**
+     * Create a new thread pool for one Spring context.
+     */
+    public static ThreadPoolExecutor createPool(TuCacheProfiles tuCacheProfiles) {
+        return create(tuCacheProfiles).getPool();
+    }
+
+    /**
+     * @deprecated use {@link #createPool(TuCacheProfiles)} so the pool can be managed by Spring.
+     */
+    @Deprecated
     public static synchronized TucacheDefaultThreadPool getInstance(TuCacheProfiles tuCacheProfiles) {
-        if (instance == null) {
-            instance = new TucacheDefaultThreadPool();
-            int minThreadNum = tuCacheProfiles.getPool().getCoreThreadNum();
-            if (minThreadNum <= 0) {
-                minThreadNum = 1;
-            }
-            int maxThreadNum = tuCacheProfiles.getPool().getMaxThreadNum();
-            if (maxThreadNum <= minThreadNum) {
-                maxThreadNum = minThreadNum;
-            }
-            int finalMaxThreadNum = maxThreadNum;
-            instance.pool = new ThreadPoolExecutor(minThreadNum, finalMaxThreadNum,
-                    tuCacheProfiles.getPool().getKeepAliveTime(), TimeUnit.MILLISECONDS,
-                    new LinkedBlockingDeque<Runnable>(Integer.MAX_VALUE) {
-                        private final ReentrantLock lock = new ReentrantLock();
+        return create(tuCacheProfiles);
+    }
 
-                        @Override
-                        public boolean offer(Runnable e) {
-                            lock.lock();
-                            try {
-                                // 策略选择为，如果没有达到最大线程数量，且当队列积压任务超过了最大线程数则增加一个新工作线程
-                                if (instance.pool.getPoolSize() < finalMaxThreadNum
-                                        && this.size() >= finalMaxThreadNum) {
-                                    return false;
-                                }
-
-                                return offerLast(e);
-                            } finally {
-                                lock.unlock();
-                            }
-                        }
-                    },
-                    new ThreadFactory() {
-                        private final AtomicLong threadNumber = new AtomicLong(1);
-
-                        @Override
-                        public Thread newThread(Runnable r) {
-                            final Thread t = new Thread(null, r, "tu-cache-pool-" + threadNumber.getAndIncrement());
-                            t.setDaemon(false);
-                            //优先级
-                            if (Thread.NORM_PRIORITY != t.getPriority()) {
-                                // 标准优先级
-                                t.setPriority(Thread.NORM_PRIORITY);
-                            }
-                            return t;
-                        }
-
-                    },
-                    (r, executor) -> {
-                        log.error("tu-cache thread pool is full.");
-                        new ThreadPoolExecutor.AbortPolicy().rejectedExecution(r, executor);
-                    });
+    private static TucacheDefaultThreadPool create(TuCacheProfiles tuCacheProfiles) {
+        TucacheDefaultThreadPool threadPool = new TucacheDefaultThreadPool();
+        int minThreadNum = tuCacheProfiles.getPool().getCoreThreadNum();
+        if (minThreadNum <= 0) {
+            minThreadNum = 1;
         }
+        int maxThreadNum = tuCacheProfiles.getPool().getMaxThreadNum();
+        if (maxThreadNum <= minThreadNum) {
+            maxThreadNum = minThreadNum;
+        }
+        int finalMaxThreadNum = maxThreadNum;
+        ThreadPoolExecutor[] poolRef = new ThreadPoolExecutor[1];
+        threadPool.pool = new ThreadPoolExecutor(minThreadNum, finalMaxThreadNum,
+                tuCacheProfiles.getPool().getKeepAliveTime(), TimeUnit.MILLISECONDS,
+                new LinkedBlockingDeque<Runnable>(Integer.MAX_VALUE) {
+                    private final ReentrantLock lock = new ReentrantLock();
 
-        return instance;
+                    @Override
+                    public boolean offer(Runnable e) {
+                        lock.lock();
+                        try {
+                            // 策略选择为，如果没有达到最大线程数量，且当队列积压任务超过了最大线程数则增加一个新工作线程
+                            if (poolRef[0].getPoolSize() < finalMaxThreadNum
+                                    && this.size() >= finalMaxThreadNum) {
+                                return false;
+                            }
+
+                            return offerLast(e);
+                        } finally {
+                            lock.unlock();
+                        }
+                    }
+                },
+                new ThreadFactory() {
+                    private final AtomicLong threadNumber = new AtomicLong(1);
+
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        final Thread t = new Thread(null, r, "tu-cache-pool-" + threadNumber.getAndIncrement());
+                        t.setDaemon(false);
+                        //优先级
+                        if (Thread.NORM_PRIORITY != t.getPriority()) {
+                            // 标准优先级
+                            t.setPriority(Thread.NORM_PRIORITY);
+                        }
+                        return t;
+                    }
+
+                },
+                (r, executor) -> {
+                    log.error("tu-cache thread pool is full.");
+                    new ThreadPoolExecutor.AbortPolicy().rejectedExecution(r, executor);
+                });
+        poolRef[0] = threadPool.pool;
+        return threadPool;
     }
 
 }

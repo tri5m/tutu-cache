@@ -7,7 +7,6 @@ import io.github.tri5m.tucache.core.bean.TuKeyGenerate;
 import io.github.tri5m.tucache.core.bean.impl.DefaultTuKeyGenerate;
 import io.github.tri5m.tucache.core.cache.TuCacheService;
 import io.github.tri5m.tucache.core.config.TuCacheProfiles;
-import io.github.tri5m.tucache.core.pool.TucacheDefaultThreadPool;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -107,20 +106,14 @@ public class TuCacheAspect implements DisposableBean, InitializingBean, BeanFact
             this.tuKeyGenerate = new DefaultTuKeyGenerate(beanFactory);
         }
 
-        if (tuCacheService != null) {
-            if (syncExecutorService == null) {
-                syncExecutorService = TucacheDefaultThreadPool.getInstance(tuCacheProfiles).getPool();
-            }
-
+        if (tuCacheService != null && syncExecutorService == null) {
+            log.warn("tu-cache async executor is not configured; async cache operations will run synchronously.");
         }
     }
 
     @Override
     public void destroy() {
-        if (syncExecutorService != null && !syncExecutorService.isShutdown()) {
-            syncExecutorService.shutdownNow();
-            log.info("tu-cache is destroyed.");
-        }
+        log.info("tu-cache is destroyed.");
     }
 
     @Override
@@ -172,13 +165,13 @@ public class TuCacheAspect implements DisposableBean, InitializingBean, BeanFact
                         debugLog("tu-cache write to cache.");
                         if (timeout == -1) {
                             if (tuCache.async()) {
-                                syncExecutorService.execute(() -> tuCacheService.set(cacheKey, finaCacheResult));
+                                executeAsync(() -> tuCacheService.set(cacheKey, finaCacheResult));
                             } else {
                                 tuCacheService.set(cacheKey, cacheResult);
                             }
                         } else {
                             if (tuCache.async()) {
-                                syncExecutorService.execute(() -> tuCacheService.set(cacheKey, finaCacheResult,
+                                executeAsync(() -> tuCacheService.set(cacheKey, finaCacheResult,
                                         timeout, tuCache.timeUnit()));
                             } else {
                                 tuCacheService.set(cacheKey, cacheResult, timeout, tuCache.timeUnit());
@@ -214,7 +207,7 @@ public class TuCacheAspect implements DisposableBean, InitializingBean, BeanFact
                 for (String item : key) {
                     String cKey = tuKeyGenerate.generate(tuCacheProfiles, item, targetObj, method, args);
                     if (tuCacheClear.async()) {
-                        syncExecutorService.execute(() -> tuCacheService.delete(cKey));
+                        executeAsync(() -> tuCacheService.delete(cKey));
                     } else {
                         tuCacheService.delete(cKey);
                     }
@@ -222,7 +215,7 @@ public class TuCacheAspect implements DisposableBean, InitializingBean, BeanFact
                 for (String item : keys) {
                     String cKey = tuKeyGenerate.generate(tuCacheProfiles, item, targetObj, method, args);
                     if (tuCacheClear.async()) {
-                        syncExecutorService.execute(() -> tuCacheService.deleteKeys(cKey));
+                        executeAsync(() -> tuCacheService.deleteKeys(cKey));
                     } else {
                         tuCacheService.deleteKeys(cKey);
                     }
@@ -239,5 +232,14 @@ public class TuCacheAspect implements DisposableBean, InitializingBean, BeanFact
         if (tuCacheProfiles.isEnableDebugLog()) {
             log.debug(msg);
         }
+    }
+
+    private void executeAsync(Runnable runnable) {
+        if (syncExecutorService == null) {
+            runnable.run();
+            return;
+        }
+
+        syncExecutorService.execute(runnable);
     }
 }

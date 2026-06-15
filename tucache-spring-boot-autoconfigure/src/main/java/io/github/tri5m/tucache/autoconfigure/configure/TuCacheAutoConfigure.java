@@ -8,6 +8,7 @@ import io.github.tri5m.tucache.core.cache.TuCacheService;
 import io.github.tri5m.tucache.core.cache.impl.LocalCacheService;
 import io.github.tri5m.tucache.core.cache.impl.RedisCacheService;
 import io.github.tri5m.tucache.core.cache.impl.RedissonCacheService;
+import io.github.tri5m.tucache.core.pool.TucacheDefaultThreadPool;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.BeanFactory;
@@ -24,6 +25,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.ImportSelector;
 import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.util.Assert;
+
+import java.util.concurrent.ExecutorService;
 
 /**
  * tu-cache springboot auto configuration
@@ -44,7 +47,8 @@ public class TuCacheAutoConfigure {
     @ConditionalOnMissingBean
     public TuCacheAspect tuCacheAspect(TuCacheProfilesConfigure tuCacheConfigure,
                                        ObjectProvider<TuCacheService> tuCacheServices,
-                                       ObjectProvider<TuKeyGenerate> tuKeyGenerates) {
+                                       ObjectProvider<TuKeyGenerate> tuKeyGenerates,
+                                       ObjectProvider<ExecutorService> executorServices) {
 
         TuCacheService tuCacheService = selectTuCacheService(tuCacheServices, tuCacheConfigure.getCacheType());
         Assert.notNull(tuCacheService, "tu-cache TuCacheService bean does not exist.");
@@ -56,8 +60,19 @@ public class TuCacheAutoConfigure {
         tuCacheAspect.setTuCacheService(tuCacheService);
 
         tuKeyGenerates.ifAvailable(tuCacheAspect::setTuKeyGenerate);
+        ExecutorService executorService = executorServices.getIfUnique();
+        if (executorService != null) {
+            tuCacheAspect.setSyncExecutorService(executorService);
+        }
 
         return tuCacheAspect;
+    }
+
+    @Bean(value = "tuCacheExecutorService", destroyMethod = "shutdownNow")
+    @ConditionalOnMissingBean(ExecutorService.class)
+    public ExecutorService tuCacheExecutorService(TuCacheProfilesConfigure tuCacheConfigure) {
+
+        return TucacheDefaultThreadPool.createPool(tuCacheConfigure.getProfiles());
     }
 
     @Bean

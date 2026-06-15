@@ -11,6 +11,10 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class TuCacheClearAspectTest {
 
@@ -72,8 +76,45 @@ public class TuCacheClearAspectTest {
         TuCacheAspect aspect = new TuCacheAspect();
         aspect.setTuCacheService(localCacheService);
         aspect.setTuKeyGenerate((profiles, originKey, rootObject, method, arguments) -> originKey);
+        aspect.setSyncExecutorService(new DirectExecutorService());
         aspect.afterPropertiesSet();
         return aspect;
+    }
+
+    static class DirectExecutorService extends AbstractExecutorService {
+
+        private boolean shutdown;
+
+        @Override
+        public void shutdown() {
+            shutdown = true;
+        }
+
+        @Override
+        public List<Runnable> shutdownNow() {
+            shutdown = true;
+            return Collections.emptyList();
+        }
+
+        @Override
+        public boolean isShutdown() {
+            return shutdown;
+        }
+
+        @Override
+        public boolean isTerminated() {
+            return shutdown;
+        }
+
+        @Override
+        public boolean awaitTermination(long timeout, TimeUnit unit) {
+            return shutdown;
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            command.run();
+        }
     }
 
     private Method method(String name) throws NoSuchMethodException {
