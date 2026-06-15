@@ -11,7 +11,7 @@ Read [`README.md`](README.md) first for public usage, then confirm behavior from
 
 ## What TuCache Does
 
-TuCache caches method return values with `@TuCache` and clears exact or prefix-based keys with `@TuCacheClear`.
+TuCache caches method return values with `@TuCache` and clears exact or wildcard keys with `@TuCacheClear`.
 
 Core behavior from source:
 
@@ -21,7 +21,7 @@ Core behavior from source:
 - If no `key`/`value` is provided, the default key is `fully.qualified.ClassName:methodName:arg1:arg2...`.
 - `condition` is raw SpEL and must evaluate to `boolean`.
 - `key`/`value` support SpEL templates with `#{...}`.
-- `keys` in `@TuCacheClear` means prefix deletion, not exact deletion.
+- `keys` in `@TuCacheClear` deletes exact keys unless the value contains `*`.
 
 Primary implementation points:
 
@@ -115,12 +115,12 @@ Use exact deletion when the changed data maps to a specific cache entry.
 public void updateUser(Long id, UpdateUserCommand command) { ... }
 ```
 
-Use prefix deletion with `keys` when one write affects a family of cache entries.
+Use wildcard deletion with `keys` when one write affects a family of cache entries.
 
 ```java
 @TuCacheClear(
     key = "user:detail:#{#id}",
-    keys = "user:list",
+    keys = "user:list:*",
     async = true
 )
 public void deleteUser(Long id) { ... }
@@ -128,8 +128,8 @@ public void deleteUser(Long id) { ... }
 
 Important limitation:
 
-- Local cache prefix deletion is hierarchical by `:` segments.
-- Use complete namespace levels such as `user:list` or `user:list:tenantA`.
+- Use explicit wildcard patterns such as `user:list:*` or `user:list:tenantA:*`.
+- Without `*`, `keys` deletes only the exact key.
 - Do not rely on partial fragment matching like `user:li`.
 
 Relevant source:
@@ -191,7 +191,7 @@ Use local cache only when all of these are true:
 
 - single-node deployment is acceptable, or per-node cache divergence is acceptable
 - data volume is limited
-- prefix invalidation volume is small
+- wildcard invalidation volume is small
 
 If Redis is used, prefer a `RedisTemplate<String, Object>` with string keys and JSON-friendly value serialization, as shown in [`README.md`](README.md).
 
@@ -233,7 +233,7 @@ Clear both detail and list caches after mutation:
 ```java
 @TuCacheClear(
     key = "article:detail:#{#command.id}",
-    keys = "article:list",
+    keys = "article:list:*",
     async = true
 )
 public void updateArticle(UpdateArticleCommand command) { ... }

@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 一个基于 ConcurrentHashMap 的本地缓存，可以按照层级模糊删除
+ * 一个基于 ConcurrentHashMap 的本地缓存，可以按照通配前缀删除
  * 在树的层级越低越近于 ConcurrentHashMap 的性能
  *
  * @title: TuTreeCache
@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
  * @modified:
  */
 @Slf4j
+@Deprecated
 public class TuTreeCache {
 
     public static final long NOT_EXPIRE = -1;
@@ -211,44 +212,51 @@ public class TuTreeCache {
     }
 
     /**
-     * 移除缓存，级联移除缓存，类似于redis中的移除keys
+     * 移除缓存。默认删除精确key，包含通配符"*"时按前缀删除。
      */
-    public void removeKeys(String keyPrefix) {
-        if (!StringUtils.hasLength(keyPrefix)) {
+    public void removeKeys(String keyPattern) {
+        if (!StringUtils.hasLength(keyPattern)) {
             return;
         }
-        String[] keys = keyPrefix.split(DELIMITER, -1);
-        CacheTable currentHierarchy = cacheTable;
-        CacheNode currentNode;
-        for (int i = 0; i < keys.length; i++) {
-            String currentKey = keys[i];
-            if (currentHierarchy == null) {
-                return;
-            }
-            currentNode = currentHierarchy.get(currentKey);
-            if (currentNode == null) {
 
-                return;
-            }
-            if (i + 1 == keys.length) {
-                currentHierarchy.remove(currentKey);
-                return;
-            }
-
-            // 如果是中间节点且已过期，清理节点
-            if (currentNode.isExpired()) {
-                // 如果是中间节点
-                if (currentNode.getChild() == null || currentNode.getChild().isEmpty()) {
-                    currentHierarchy.remove(currentKey);
-                    return;
-                } else {
-                    currentNode.setObj(null);
-                    currentNode.setExpire(-1);
-                }
-            }
-
-            currentHierarchy = currentNode.getChild();
+        if (!keyPattern.endsWith("*")) {
+            remove(keyPattern);
+            return;
         }
+
+        String keyPrefix = trimTrailingWildcard(keyPattern);
+        if (!StringUtils.hasLength(keyPrefix)) {
+            cacheTable.clear();
+            return;
+        }
+
+        removeByPrefix(cacheTable, null, keyPrefix);
+    }
+
+    private void removeByPrefix(CacheTable cacheTable, String path, String keyPrefix) {
+        if (cacheTable == null || cacheTable.isEmpty()) {
+            return;
+        }
+
+        Iterator<Map.Entry<String, CacheNode>> iterator = cacheTable.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, CacheNode> entry = iterator.next();
+            String currentPath = path == null ? entry.getKey() : path + DELIMITER + entry.getKey();
+            if (currentPath.startsWith(keyPrefix)) {
+                iterator.remove();
+                continue;
+            }
+
+            removeByPrefix(entry.getValue().getChild(), currentPath, keyPrefix);
+        }
+    }
+
+    private String trimTrailingWildcard(String key) {
+        String result = key;
+        while (result.endsWith("*")) {
+            result = result.substring(0, result.length() - 1);
+        }
+        return result;
     }
 
     /**

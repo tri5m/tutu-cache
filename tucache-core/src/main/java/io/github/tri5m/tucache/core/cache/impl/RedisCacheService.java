@@ -42,12 +42,19 @@ public class RedisCacheService extends AbstractTuCacheService {
 
     @Override
     public void deleteKeys(String key) {
-        String k = key;
-        if (!key.endsWith("*")) {
-            k = key + "*";
+        if (key == null) {
+            return;
         }
-        Set<String> keys = redisTemplate.keys(k);
-        redisTemplate.delete(keys);
+
+        if (!key.contains("*")) {
+            redisTemplate.delete(key);
+            return;
+        }
+
+        Set<String> keys = redisTemplate.keys(key);
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
     }
 
     @Override

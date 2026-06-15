@@ -87,7 +87,7 @@ tutu-cache 是一个简单易用的 Spring 缓存注解。
         ```
 4. @TuCacheClear参数
     * `String[] key() default {}` 删除的 key 数组，支持 SpEL 表达式（使用 #{} 包裹 SpEL 表达式）
-    * `String[] keys() default {}` 模糊删除的缓存 key 数组，支持 SpEL 表达式（使用 #{} 包裹 SpEL 表达式），对应 Redis 中 **deleteKeys**("test_service:")
+    * `String[] keys() default {}` 删除的缓存 key 或通配模式数组，支持 SpEL 表达式（使用 #{} 包裹 SpEL 表达式）。使用 `*` 表示通配删除，例如 **deleteKeys**("test_service:*")
     * `boolean async() default false` 是否异步删除，无需等待删除的结果
     * `String condition() default "true"` 扩展的条件过滤，值为 SpEL 表达式（直接编写表达式，不需要使用 #{} 声明为 SpEL）
     * 样例:
@@ -97,17 +97,17 @@ tutu-cache 是一个简单易用的 Spring 缓存注解。
         }
         
         // 模糊删除 test_service:itemList:开头的所有key
-        @TuCacheClear(keys={"test_service:itemList:"}, async = true)
+        @TuCacheClear(keys={"test_service:itemList:*"}, async = true)
         public void deleteItem(Long id){
         }
       
         // 支持 SpEL 表达式
-        @TuCacheClear(keys={"test_service:itemList:","test_service:itemDetail:#{#id}"}, async = true)
+        @TuCacheClear(keys={"test_service:itemList:*","test_service:itemDetail:#{#id}"}, async = true)
         public void deleteItem(Long id){
         }
         ```
     * _注意key和keys的区别_
-    * 对 AI 和开发者都建议：`keys` 使用完整的 `:` 层级前缀，例如 `user:list`、`user:list:tenantA`，不要使用不完整片段；在本地缓存中，模糊删除是按 `:` 层级处理的
+    * 对 AI 和开发者都建议：前缀删除时显式使用 `*`，例如 `user:list:*`、`user:list:tenantA:*`；不带 `*` 时，`keys` 只删除精确 key
 5. condition 的用法
     * condition 要求 SpEL 返回一个 boolean 类型的值，例如：
       * condition = "#param.startsWith('a')"
@@ -198,7 +198,7 @@ public UserDTO getUser(Long id) {
 
 @TuCacheClear(
     key = "user:detail:#{#command.id}",
-    keys = "user:list",
+    keys = "user:list:*",
     async = true
 )
 public void updateUser(UpdateUserCommand command) {
@@ -210,7 +210,7 @@ public void updateUser(UpdateUserCommand command) {
 * `@TuCache` 不会缓存 `void` 方法
 * 返回 `null` 时不会写入缓存
 * `condition` 必须返回 `boolean`
-* `keys` 表示按前缀模糊删除，不是精确删除
+* `keys` 默认删除精确 key，使用 `*` 时才按通配模式删除
 * 如果没有显式声明 `key`，默认 key 为 `类名:方法名:参数...`
 * 如果项目配置了 `tucache.profiles.cache-prefix`，注解里的 key 不要重复拼接全局前缀
 

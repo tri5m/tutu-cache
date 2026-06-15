@@ -88,7 +88,7 @@ Use tutu-cache annotations instead of `@Cacheable`, `@CacheEvict`, and similar a
         ```
 4. `@TuCacheClear` parameters
     * `String[] key() default {}`: exact keys to delete, supports SpEL expressions wrapped with `#{}`.
-    * `String[] keys() default {}`: prefix keys for fuzzy deletion, supports SpEL expressions wrapped with `#{}`. This maps to Redis `deleteKeys("test_service:")`.
+    * `String[] keys() default {}`: cache keys or wildcard patterns to delete, supports SpEL expressions wrapped with `#{}`. Use `*` for wildcard deletion, for example `deleteKeys("test_service:*")`.
     * `boolean async() default false`: whether to delete asynchronously.
     * `String condition() default "true"`: additional filtering condition. The value is a SpEL expression written directly, without `#{}`.
     * Examples:
@@ -98,17 +98,17 @@ Use tutu-cache annotations instead of `@Cacheable`, `@CacheEvict`, and similar a
         }
 
         // Delete all keys starting with test_service:itemList:
-        @TuCacheClear(keys={"test_service:itemList:"}, async = true)
+        @TuCacheClear(keys={"test_service:itemList:*"}, async = true)
         public void deleteItem(Long id){
         }
 
         // Supports SpEL expressions
-        @TuCacheClear(keys={"test_service:itemList:","test_service:itemDetail:#{#id}"}, async = true)
+        @TuCacheClear(keys={"test_service:itemList:*","test_service:itemDetail:#{#id}"}, async = true)
         public void deleteItem(Long id){
         }
         ```
     * _Pay attention to the difference between `key` and `keys`._
-    * Recommendation for both developers and AI agents: use complete `:`-level prefixes for `keys`, such as `user:list` or `user:list:tenantA`. Do not use incomplete fragments. In local cache mode, fuzzy deletion is processed by `:` hierarchy.
+    * Recommendation for both developers and AI agents: use explicit wildcard patterns for prefix deletion, such as `user:list:*` or `user:list:tenantA:*`. Without `*`, `keys` deletes only the exact key.
 5. `condition` usage
     * `condition` must return a boolean value, for example:
       * `condition = "#param.startsWith('a')"`
@@ -201,7 +201,7 @@ public UserDTO getUser(Long id) {
 
 @TuCacheClear(
     key = "user:detail:#{#command.id}",
-    keys = "user:list",
+    keys = "user:list:*",
     async = true
 )
 public void updateUser(UpdateUserCommand command) {
@@ -213,7 +213,7 @@ Important source-level behaviors AI should consider:
 * `@TuCache` does not cache `void` methods
 * `null` return values are not written to cache
 * `condition` must return `boolean`
-* `keys` means prefix-based invalidation, not exact deletion
+* `keys` deletes exact keys unless you use `*` for wildcard invalidation
 * If no explicit `key` is provided, the default key is `ClassName:methodName:args...`
 * If the project uses `tucache.profiles.cache-prefix`, do not duplicate that global prefix in annotation keys
 
@@ -233,4 +233,3 @@ If you want to provide these rules to AI directly, see [`SKILL.md`](./SKILL.md) 
 |  一直在梦想路上 | 20  | 20***154 |
 |           |    |          |
 |           |    |          |
-

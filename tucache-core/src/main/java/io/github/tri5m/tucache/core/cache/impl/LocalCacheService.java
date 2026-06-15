@@ -1,7 +1,7 @@
 package io.github.tri5m.tucache.core.cache.impl;
 
 import io.github.tri5m.tucache.core.cache.AbstractTuCacheService;
-import io.github.tri5m.tucache.core.localcache.TuTreeCache;
+import io.github.tri5m.tucache.core.localcache.CaffeineCache;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.TimeUnit;
@@ -15,56 +15,44 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class LocalCacheService extends AbstractTuCacheService {
 
-    private final TuTreeCache tuTreeCache;
+    private final CaffeineCache caffeineCache;
 
     public LocalCacheService() {
-        tuTreeCache = new TuTreeCache();
+        caffeineCache = new CaffeineCache();
     }
 
     @Override
     public void set(String key, Object value, long timeout, TimeUnit timeUnit) {
-        tuTreeCache.putNode(key, value, timeout < 0 ? null : timeUnit.toMillis(timeout));
+        caffeineCache.put(key, value, timeout < 0 ? null : timeUnit.toMillis(timeout));
     }
 
     @Override
     public void set(String key, Object value) {
-        set(key, value, TuTreeCache.NOT_EXPIRE, TimeUnit.SECONDS);
+        set(key, value, CaffeineCache.NOT_EXPIRE, TimeUnit.SECONDS);
     }
 
     @Override
     public <T> T get(String key, Class<T> clazz) {
-        TuTreeCache.CacheNode cacheNode = tuTreeCache.searchNode(key);
-        if (cacheNode != null) {
-            return objectConvertBean(cacheNode.getObj(), clazz);
-        }
-
-        return null;
+        return objectConvertBean(caffeineCache.get(key), clazz);
     }
 
     @Override
     public <T> T get(String key, Class<T> clazz, long timeout, TimeUnit timeUnit) {
-        TuTreeCache.CacheNode cacheNode = tuTreeCache.searchNode(key);
-        if (cacheNode != null) {
-            cacheNode.setExpire(timeout < 0 ? TuTreeCache.NOT_EXPIRE
-                    : (timeUnit.toMillis(timeout) + System.currentTimeMillis()));
-            return objectConvertBean(cacheNode.getObj(), clazz);
-        }
-
-        return null;
+        return objectConvertBean(caffeineCache.getAndResetExpire(key, timeout, timeUnit), clazz);
     }
 
     @Override
     public void delete(String key) {
-        tuTreeCache.remove(key);
+        caffeineCache.remove(key);
     }
 
     @Override
     public void deleteKeys(String key) {
-        String k = key;
-        while (k.endsWith("*")) {
-            k = k.substring(0, k.length() - 1);
+        if (key == null) {
+            return;
         }
-        tuTreeCache.removeKeys(k);
+
+        caffeineCache.removeKeys(key);
     }
 
 }

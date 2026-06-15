@@ -19,23 +19,22 @@ import java.lang.annotation.*;
 public @interface TuCacheClear {
 
     /**
-     * delete the corresponding cache, keys means delete all caches beginning with keys (fuzzy deletion)
-     * If there is a cache with a key of example:123:keys, when the keys is example.
+     * delete the corresponding cache, keys means delete exact keys unless the value contains wildcard "*".
+     * If there is a cache with a key of example:123:keys, use keys = "example:*".
      * all caches starting with example: will be deleted
      * You can specify multiple keys and keys.
      * <p></p>
-     * Note that keys can only be split by ":" as a minimum finesse, e.g.
-     * <pre>key = "aaa:bbb:ccc"</pre> using <pre>keys = aaa:bbb:c</pre> fuzzy deletion, such usage is wrong at least in LocalCache.
+     * Use explicit wildcard patterns for fuzzy deletion, e.g.
+     * <pre>key = "aaa:bbb:ccc"</pre> using <pre>keys = aaa:bbb:*</pre> deletes children under aaa:bbb.
      * <p></p>
      * Try not to use keys mirroring cache deletion, which leads to very slow deletion,
      * or async = true to enable asynchronous deletion, which does not avoid memory pressure if there are too many keys.
-     * Note that the minimum granularity for cache deletion using fuzzy deletion is the ":" split level, if it is not a full level then it will be a problem in LocalCache,
-     * or lead to problems with local and distributed caches being out of sync.
+     * Without wildcard "*", keys deletes only the exact key.
      * Alias for {@link #key()}
      * <p></p>
      * 尽量不使用keys镜像缓存删除，这会导致删除的速度非常缓慢，或者async = true开启异步删除
      * ，但无法避免如果key过多导致的内存压力。
-     * 注意，缓存使用模糊删除的最小粒度是":"分割的层级，如果不是一个完整的层则在LocalCache中会存在问题，或者导致本地和分布式缓存不同步问题。
+     * 注意，模糊删除需要显式使用 "*"，不带 "*" 时只删除精确 key。
      */
     String[] value() default {};
 

@@ -53,10 +53,15 @@ public class RedissonCacheService extends AbstractTuCacheService {
 
     @Override
     public void deleteKeys(String key) {
-        String k = key;
-        if (!key.endsWith("*")) {
-            k = key + "*";
+        if (key == null) {
+            return;
         }
-        redissonClient.getKeys().deleteByPattern(k);
+
+        if (!key.contains("*")) {
+            redissonClient.getBucket(key).delete();
+            return;
+        }
+
+        redissonClient.getKeys().deleteByPattern(key);
     }
 }
