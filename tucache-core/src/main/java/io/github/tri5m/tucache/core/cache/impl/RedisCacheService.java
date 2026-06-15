@@ -1,9 +1,13 @@
 package io.github.tri5m.tucache.core.cache.impl;
 
 import io.github.tri5m.tucache.core.cache.AbstractTuCacheService;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -15,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 public class RedisCacheService extends AbstractTuCacheService {
 
     private final RedisTemplate<String, Object> redisTemplate;
+    private static final int SCAN_BATCH_SIZE = 1000;
 
     public RedisCacheService(RedisTemplate<String, Object> redisTemplate) {
         this.redisTemplate = redisTemplate;
@@ -51,10 +56,7 @@ public class RedisCacheService extends AbstractTuCacheService {
             return;
         }
 
-        Set<String> keys = redisTemplate.keys(key);
-        if (keys != null && !keys.isEmpty()) {
-            redisTemplate.delete(keys);
-        }
+        deleteByScan(key);
     }
 
     @Override
@@ -73,6 +75,33 @@ public class RedisCacheService extends AbstractTuCacheService {
         }
 
         return objectConvertBean(value, clazz);
+    }
+
+    private void deleteByScan(String pattern) {
+        redisTemplate.execute((RedisConnection connection) -> {
+            ScanOptions options = ScanOptions.scanOptions()
+                    .match(pattern)
+                    .count(SCAN_BATCH_SIZE)
+                    .build();
+            List<byte[]> keys = new ArrayList<>(SCAN_BATCH_SIZE);
+            try (Cursor<byte[]> cursor = connection.keyCommands().scan(options)) {
+                while (cursor.hasNext()) {
+                    keys.add(cursor.next());
+                    if (keys.size() >= SCAN_BATCH_SIZE) {
+                        deleteBatch(connection, keys);
+                    }
+                }
+            }
+            deleteBatch(connection, keys);
+            return null;
+        });
+    }
+
+    private void deleteBatch(RedisConnection connection, List<byte[]> keys) {
+        if (!keys.isEmpty()) {
+            connection.keyCommands().del(keys.toArray(new byte[0][]));
+            keys.clear();
+        }
     }
 
 }

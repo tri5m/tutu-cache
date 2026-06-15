@@ -6,7 +6,8 @@
 - 本地缓存改成了Caffeine,不在使用TuTreeCache
 - 修改了MD文档中的一些问题
 - @TuCacheClear 添加了beforeInvocation，防止个边缘情况下的cache脏数据
-- 
+- RedisCacheService 删除Keys改成了SCAN方式，防止阻塞redis
+- 修复默认 key 没有加全局 cachePrefix的问题
 
 ## [1.0.6] - 2025-04-10
 
